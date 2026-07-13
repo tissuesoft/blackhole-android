@@ -24,7 +24,8 @@
     <string name="permission_granted">Granted</string>
     <string name="permission_missing">Required</string>
     <string name="notices_title">Notices</string>
-    <string name="notice_body">• Overlay, notifications, and accessibility are required.\n• Secure / DRM screens (banking, Netflix, etc.) may appear black.\n• Android only — iOS is not supported.\n• If the feature is ON, it keeps running after screen off/on and after you leave the app.</string>
+    <string name="idle_hint">While media audio is playing (YouTube, music, etc.), the blackhole will not appear.</string>
+    <string name="notice_body">• Overlay, notifications, and accessibility are required.\n• While media audio is playing (YouTube, music, etc.), the blackhole will not appear.\n• Secure / DRM screens (banking, Netflix, etc.) may appear black.\n• Android only — iOS is not supported.\n• If the feature is ON, it keeps running after screen off/on and after you leave the app.</string>
     <string name="status_ready">All permissions ready. Feature can run in background.</string>
     <string name="status_need_perms">Grant all permissions, then turn the feature ON.</string>
     <string name="widget_on">Blackhole ON</string>

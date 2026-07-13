@@ -24,7 +24,8 @@
     <string name="permission_granted">허용됨</string>
     <string name="permission_missing">필요함</string>
     <string name="notices_title">안내</string>
-    <string name="notice_body">• 오버레이·알림·접근성 권한이 필요합니다.\n• 보안/DRM 화면(뱅킹, 넷플릭스 등)은 검게 표시될 수 있습니다.\n• Android 전용이며 iOS는 지원하지 않습니다.\n• 기능이 켜져 있으면 화면을 껐다 켜도, 앱을 나가도 계속 동작합니다.</string>
+    <string name="idle_hint">유튜브·음악 등 미디어 오디오가 재생 중이면 블랙홀이 나타나지 않습니다.</string>
+    <string name="notice_body">• 오버레이·알림·접근성 권한이 필요합니다.\n• 유튜브·음악 등 미디어 오디오가 재생 중이면 블랙홀이 나타나지 않습니다.\n• 보안/DRM 화면(뱅킹, 넷플릭스 등)은 검게 표시될 수 있습니다.\n• Android 전용이며 iOS는 지원하지 않습니다.\n• 기능이 켜져 있으면 화면을 껐다 켜도, 앱을 나가도 계속 동작합니다.</string>
     <string name="status_ready">권한이 준비되었습니다. 백그라운드에서 동작할 수 있습니다.</string>
     <string name="status_need_perms">필요한 권한을 허용한 뒤 기능을 켜세요.</string>
     <string name="widget_on">블랙홀 켜짐</string>

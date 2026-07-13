@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import com.blackhole.screensaver.BlackholeApp
 import com.blackhole.screensaver.R
 import com.blackhole.screensaver.idle.IdleAccessibilityService
+import com.blackhole.screensaver.idle.MediaPlaybackDetector
 import com.blackhole.screensaver.overlay.OverlayController
 import com.blackhole.screensaver.prefs.AppPrefs
 import com.blackhole.screensaver.prefs.PermissionHelper
@@ -200,6 +201,14 @@ class BlackholeForegroundService : Service() {
             return
         }
 
+        // Don't show (and dismiss if showing) while YouTube/music/video audio plays.
+        if (MediaPlaybackDetector.isMediaPlaying(this)) {
+            IdleAccessibilityService.markInput()
+            pendingShow = false
+            hideOverlay()
+            return
+        }
+
         val idleLimit = AppPrefs.idleSeconds * 1_000L
         val idle = IdleAccessibilityService.idleMillis()
         if (idle >= idleLimit) {
@@ -216,6 +225,7 @@ class BlackholeForegroundService : Service() {
         val o = overlay ?: return
         if (o.isShowing || pendingShow) return
         if (IdleAccessibilityService.instance == null) return
+        if (MediaPlaybackDetector.isMediaPlaying(this)) return
 
         pendingShow = true
         IdleAccessibilityService.captureScreen { bmp ->
@@ -225,7 +235,11 @@ class BlackholeForegroundService : Service() {
                     return@post
                 }
                 pendingShow = false
-                if (!AppPrefs.enabled || !isScreenOn() || overlay?.isShowing == true) {
+                if (!AppPrefs.enabled ||
+                    !isScreenOn() ||
+                    overlay?.isShowing == true ||
+                    MediaPlaybackDetector.isMediaPlaying(this)
+                ) {
                     bmp?.recycle()
                     return@post
                 }
