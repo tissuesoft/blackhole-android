@@ -162,7 +162,8 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     private fun roam(dt: Float) {
         centerX += velX * dt
         centerY += velY * dt
-        val margin = rs * effectRadiusFactor + 8f
+        // Allow the BH core to reach screen edges (effect may clip off-screen).
+        val margin = rs * horizonFactor
         if (centerX < margin) {
             centerX = margin
             velX = kotlin.math.abs(velX)

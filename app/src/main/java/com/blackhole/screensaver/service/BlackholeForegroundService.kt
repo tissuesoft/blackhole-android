@@ -48,7 +48,7 @@ class BlackholeForegroundService : Service() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BlackholeApp.ACTION_INPUT_DETECTED -> onUserInput()
-                BlackholeApp.ACTION_IDLE_MINUTES_CHANGED -> Unit
+                BlackholeApp.ACTION_IDLE_SECONDS_CHANGED -> Unit
             }
         }
     }
@@ -81,7 +81,7 @@ class BlackholeForegroundService : Service() {
             inputReceiver,
             IntentFilter().apply {
                 addAction(BlackholeApp.ACTION_INPUT_DETECTED)
-                addAction(BlackholeApp.ACTION_IDLE_MINUTES_CHANGED)
+                addAction(BlackholeApp.ACTION_IDLE_SECONDS_CHANGED)
             },
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
@@ -200,7 +200,7 @@ class BlackholeForegroundService : Service() {
             return
         }
 
-        val idleLimit = AppPrefs.idleMinutes * 60_000L
+        val idleLimit = AppPrefs.idleSeconds * 1_000L
         val idle = IdleAccessibilityService.idleMillis()
         if (idle >= idleLimit) {
             showOverlay()

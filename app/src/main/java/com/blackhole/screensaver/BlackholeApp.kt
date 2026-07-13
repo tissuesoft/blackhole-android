@@ -32,6 +32,6 @@ class BlackholeApp : Application() {
         const val ACTION_STATE_CHANGED = "com.blackhole.screensaver.ACTION_STATE_CHANGED"
         const val ACTION_WIDGET_TOGGLE = "com.blackhole.screensaver.ACTION_WIDGET_TOGGLE"
         const val ACTION_INPUT_DETECTED = "com.blackhole.screensaver.ACTION_INPUT_DETECTED"
-        const val ACTION_IDLE_MINUTES_CHANGED = "com.blackhole.screensaver.ACTION_IDLE_MINUTES_CHANGED"
+        const val ACTION_IDLE_SECONDS_CHANGED = "com.blackhole.screensaver.ACTION_IDLE_SECONDS_CHANGED"
     }
 }

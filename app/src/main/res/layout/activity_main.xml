@@ -95,8 +95,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:max="59"
-                    android:progress="2" />
+                    android:max="118"
+                    android:progress="10" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

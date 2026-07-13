@@ -10,8 +10,8 @@
     <string name="toggle_label">ブラックホール機能</string>
     <string name="toggle_on">ON</string>
     <string name="toggle_off">OFF</string>
-    <string name="idle_label">無操作後に表示するまでの分数</string>
-    <string name="idle_value_format">%1$d分</string>
+    <string name="idle_label">無操作後に表示するまでの秒数</string>
+    <string name="idle_value_format">%1$d秒</string>
     <string name="permissions_title">権限</string>
     <string name="permission_overlay">他のアプリの上に表示</string>
     <string name="permission_overlay_btn">オーバーレイ設定を開く</string>

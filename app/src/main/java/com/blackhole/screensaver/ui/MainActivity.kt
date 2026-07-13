@@ -39,18 +39,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         applyEdgeToEdgeInsets(binding.root)
 
-        binding.idleSeekBar.max = 59 // 1..60
-        binding.idleSeekBar.progress = (AppPrefs.idleMinutes - 1).coerceIn(0, 59)
-        updateIdleLabel(AppPrefs.idleMinutes)
+        binding.idleSeekBar.max = AppPrefs.idleSeekBarMax // 10..600s, step 5
+        binding.idleSeekBar.progress = AppPrefs.idleSecondsToProgress(AppPrefs.idleSeconds)
+        updateIdleLabel(AppPrefs.idleSeconds)
 
         binding.idleSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val minutes = progress + 1
-                updateIdleLabel(minutes)
+                val seconds = AppPrefs.progressToIdleSeconds(progress)
+                updateIdleLabel(seconds)
                 if (fromUser) {
-                    AppPrefs.idleMinutes = minutes
+                    AppPrefs.idleSeconds = seconds
                     sendBroadcast(
-                        Intent(BlackholeApp.ACTION_IDLE_MINUTES_CHANGED).setPackage(packageName)
+                        Intent(BlackholeApp.ACTION_IDLE_SECONDS_CHANGED).setPackage(packageName)
                     )
                 }
             }
@@ -150,8 +150,8 @@ class MainActivity : AppCompatActivity() {
         updatingUi = false
     }
 
-    private fun updateIdleLabel(minutes: Int) {
-        binding.idleValueText.text = getString(R.string.idle_value_format, minutes)
+    private fun updateIdleLabel(seconds: Int) {
+        binding.idleValueText.text = getString(R.string.idle_value_format, seconds)
     }
 
     private fun refreshPermissionUi() {
