@@ -9,6 +9,7 @@ object AppPrefs {
     private const val KEY_ENABLED = "enabled"
     private const val KEY_IDLE_MINUTES = "idle_minutes"
     private const val KEY_CAPTURE_GRANTED = "capture_granted"
+    private const val KEY_PRIVACY_ACCEPTED = "privacy_accepted"
     private const val DEFAULT_IDLE_MINUTES = 3
 
     private lateinit var prefs: SharedPreferences
@@ -28,6 +29,10 @@ object AppPrefs {
     var captureGranted: Boolean
         get() = prefs.getBoolean(KEY_CAPTURE_GRANTED, false)
         set(value) = prefs.edit { putBoolean(KEY_CAPTURE_GRANTED, value) }
+
+    var privacyAccepted: Boolean
+        get() = prefs.getBoolean(KEY_PRIVACY_ACCEPTED, false)
+        set(value) = prefs.edit { putBoolean(KEY_PRIVACY_ACCEPTED, value) }
 
     fun registerListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         prefs.registerOnSharedPreferenceChangeListener(listener)

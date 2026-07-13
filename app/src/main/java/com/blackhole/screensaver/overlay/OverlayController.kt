@@ -23,6 +23,10 @@ class OverlayController(
         if (surfaceView != null) return
 
         val view = GLSurfaceView(context).apply {
+            // Transparent outside the BH so the real screen stays 1:1 underneath.
+            setZOrderOnTop(true)
+            holder.setFormat(PixelFormat.TRANSLUCENT)
+            setEGLConfigChooser(8, 8, 8, 8, 16, 0)
             setEGLContextClientVersion(2)
             setRenderer(renderer)
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY

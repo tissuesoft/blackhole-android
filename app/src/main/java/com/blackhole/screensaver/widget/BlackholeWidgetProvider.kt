@@ -11,7 +11,6 @@ import com.blackhole.screensaver.BlackholeApp
 import com.blackhole.screensaver.R
 import com.blackhole.screensaver.prefs.AppPrefs
 import com.blackhole.screensaver.prefs.PermissionHelper
-import com.blackhole.screensaver.service.BlackholeForegroundService
 import com.blackhole.screensaver.service.FeatureController
 import com.blackhole.screensaver.ui.MainActivity
 
@@ -29,13 +28,6 @@ class BlackholeWidgetProvider : AppWidgetProvider() {
             BlackholeApp.ACTION_WIDGET_TOGGLE -> {
                 val turningOn = !AppPrefs.enabled
                 if (turningOn) {
-                    if (!PermissionHelper.allRequiredGranted(context) && !PermissionHelper.canDrawOverlays(context)) {
-                        context.startActivity(
-                            Intent(context, MainActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                        return
-                    }
                     if (!PermissionHelper.canDrawOverlays(context) ||
                         !PermissionHelper.isAccessibilityEnabled(context) ||
                         !PermissionHelper.notificationsAllowed(context)
@@ -43,15 +35,6 @@ class BlackholeWidgetProvider : AppWidgetProvider() {
                         context.startActivity(
                             Intent(context, MainActivity::class.java)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                        return
-                    }
-                    // MediaProjection tokens are single-use; if capture isn't live, open the app.
-                    if (!BlackholeForegroundService.hasActiveCapture) {
-                        context.startActivity(
-                            Intent(context, MainActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                .putExtra(MainActivity.EXTRA_REQUEST_ENABLE, true)
                         )
                         return
                     }
@@ -72,7 +55,7 @@ class BlackholeWidgetProvider : AppWidgetProvider() {
             val ids = manager.getAppWidgetIds(ComponentName(context, BlackholeWidgetProvider::class.java))
             if (ids.isEmpty()) return
             val views = buildViews(context)
-            ids.forEach { manager.updateAppWidget(it, views) }
+            ids.forEach { id -> manager.updateAppWidget(id, views) }
         }
 
         private fun buildViews(context: Context): RemoteViews {

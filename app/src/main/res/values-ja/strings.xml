@@ -5,6 +5,7 @@
     <string name="notification_title">ブラックホールが動作中</string>
     <string name="notification_text">アイドルを監視しています。タップで設定を開きます。</string>
     <string name="notification_need_capture">タップして画面キャプチャを許可</string>
+    <string name="notification_need_capture_after_screen">画面オフ後にキャプチャが切れました。タップして再許可するとブラックホールが続きます</string>
     <string name="settings_title">ブラックホール スクリーンセーバー</string>
     <string name="toggle_label">ブラックホール機能</string>
     <string name="toggle_on">ON</string>

@@ -9,10 +9,11 @@ import com.blackhole.screensaver.widget.BlackholeWidgetProvider
 
 /**
  * Shared enable/disable path for Activity + App Widget.
+ * No MediaProjection — accessibility screenshots power the overlay.
  */
 object FeatureController {
 
-    fun setEnabled(context: Context, enabled: Boolean, resultCode: Int? = null, data: Intent? = null): Boolean {
+    fun setEnabled(context: Context, enabled: Boolean): Boolean {
         if (enabled) {
             if (!PermissionHelper.canDrawOverlays(context) ||
                 !PermissionHelper.notificationsAllowed(context) ||
@@ -21,7 +22,7 @@ object FeatureController {
                 return false
             }
             AppPrefs.enabled = true
-            BlackholeForegroundService.start(context, resultCode, data)
+            BlackholeForegroundService.start(context)
         } else {
             AppPrefs.enabled = false
             BlackholeForegroundService.stop(context)

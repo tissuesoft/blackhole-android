@@ -11,8 +11,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
         if (!AppPrefs.enabled) return
         if (!PermissionHelper.canDrawOverlays(context)) return
-        // MediaProjection consent does not survive reboot — open service in "need capture" mode
-        // so the persistent notification can bring the user back to grant it.
+        if (!PermissionHelper.isAccessibilityEnabled(context)) return
         BlackholeForegroundService.start(context)
     }
 }

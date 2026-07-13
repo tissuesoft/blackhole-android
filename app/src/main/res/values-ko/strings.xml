@@ -5,6 +5,7 @@
     <string name="notification_title">블랙홀 스크린세이버 동작 중</string>
     <string name="notification_text">유휴 시간을 감시합니다. 탭하면 설정으로 이동합니다.</string>
     <string name="notification_need_capture">탭하여 화면 캡처를 허용하세요</string>
+    <string name="notification_need_capture_after_screen">화면이 꺼졌다 켜져 캡처가 끊겼습니다. 탭해서 다시 허용하면 블랙홀이 계속 동작합니다</string>
     <string name="settings_title">블랙홀 스크린세이버</string>
     <string name="toggle_label">블랙홀 기능</string>
     <string name="toggle_on">켜짐</string>
@@ -23,7 +24,7 @@
     <string name="permission_granted">허용됨</string>
     <string name="permission_missing">필요함</string>
     <string name="notices_title">안내</string>
-    <string name="notice_body">• 화면 캡처 동의와 상시 알림은 Android 정책상 필수입니다.\n• 보안/DRM 화면(뱅킹, 넷플릭스 등)은 검게 표시됩니다.\n• Android 전용이며 iOS는 지원하지 않습니다.\n• 기능이 켜져 있으면 앱을 종료해도 블랙홀이 계속 동작할 수 있습니다.</string>
+    <string name="notice_body">• 오버레이·알림·접근성 권한이 필요합니다.\n• 보안/DRM 화면(뱅킹, 넷플릭스 등)은 검게 표시될 수 있습니다.\n• Android 전용이며 iOS는 지원하지 않습니다.\n• 기능이 켜져 있으면 화면을 껐다 켜도, 앱을 나가도 계속 동작합니다.</string>
     <string name="status_ready">권한이 준비되었습니다. 백그라운드에서 동작할 수 있습니다.</string>
     <string name="status_need_perms">필요한 권한을 허용한 뒤 기능을 켜세요.</string>
     <string name="widget_on">블랙홀 켜짐</string>
@@ -33,4 +34,22 @@
     <string name="toast_need_permissions">먼저 필요한 권한을 허용해 주세요</string>
     <string name="toast_enabled">블랙홀이 켜졌습니다</string>
     <string name="toast_disabled">블랙홀이 꺼졌습니다</string>
+
+    <string name="a11y_guide_title">접근성(유휴 감지) 설정 안내</string>
+    <string name="a11y_guide_intro">아래 순서대로 허용해 주세요. 사진은 삼성 갤럭시 기준이며, 다른 기기도 메뉴 이름은 비슷합니다.</string>
+    <string name="a11y_guide_open_btn">사진으로 설정 방법 보기</string>
+    <string name="a11y_guide_step1_title">1. 접근성 → 설치된 앱</string>
+    <string name="a11y_guide_step1_body">설정에서 접근성을 연 뒤, 「설치된 앱」을 눌러 주세요.</string>
+    <string name="a11y_guide_step2_title">2. 블랙홀 스크린세이버 선택</string>
+    <string name="a11y_guide_step2_body">목록에서 「블랙홀 스크린세이버」를 찾아 눌러 주세요. 「사용 안 함」으로 보일 수 있습니다.</string>
+    <string name="a11y_guide_step3_title">3. 사용 중 스위치 켜기</string>
+    <string name="a11y_guide_step3_body">맨 위 「사용 중」 스위치를 켜 주세요. 시스템 확인 창이 뜨면 허용한 뒤, 앱으로 돌아와 기능을 ON 하면 됩니다.</string>
+
+    <string name="privacy_title">개인정보처리방침</string>
+    <string name="privacy_updated">최종 업데이트: 2026년 7월 13일</string>
+    <string name="privacy_open_btn">개인정보처리방침 보기</string>
+    <string name="privacy_agree_check">개인정보처리방침을 읽었으며 이에 동의합니다</string>
+    <string name="privacy_agree_btn">동의하고 계속</string>
+    <string name="privacy_need_check">동의 체크를 해주세요</string>
+    <string name="privacy_body">블랙홀 스크린세이버(이하 “본 앱”)는 Android에서 유휴 시 블랙홀 오버레이 효과를 제공합니다.\n\n1. 처리 주체\n본 앱은 아래 기능을 위해 기기 안에서 정보를 처리합니다. 회원가입/로그인이 없으며, 본 앱 운영을 위해 개인정보를 수집하는 별도 서버를 두지 않습니다.\n\n2. 처리하는 정보\n• 기기에만 저장되는 앱 설정(기능 ON/OFF, 유휴 시간, 개인정보 동의 여부)\n• 유휴 시간 측정을 위한 터치·입력 감지 정보(접근성 허용 시에만, 기기 내 처리)\n• 블랙홀 왜곡 표시를 위한 화면 스냅샷(기기 내 처리, 외부 전송 없음)\n• 백그라운드 서비스 유지를 위한 알림 상태\n\n3. 이용 목적\n• 유휴 감지 및 블랙홀 오버레이 표시/해제\n• 기능 ON 시 백그라운드 동작 유지\n• 이 기기에서 개인정보처리방침 동의 여부 기억\n\n4. 보관 및 파기\n설정·동의 정보는 앱 로컬 저장소에만 보관되며, 앱 삭제 시 함께 삭제됩니다. 화면 스냅샷은 효과 표시를 위해 일시적으로만 사용하며 갤러리 앨범으로 저장하지 않습니다.\n\n5. 제3자 제공\n개인정보를 판매하지 않습니다. 화면 내용·입력 로그를 개발자 서버로 보내지 않습니다. Android 시스템 기능 이용 시 기기/OS 사업자 정책이 적용될 수 있습니다.\n\n6. 권한\n• 다른 앱 위에 표시: 블랙홀 오버레이 표시\n• 알림: 백그라운드 서비스 유지 안내\n• 접근성: 유휴 감지 및 효과용 기기 내 스크린샷\n권한은 시스템 설정에서 언제든 철회할 수 있습니다.\n\n7. 아동\n본 앱은 만 14세 미만 아동을 대상으로 하지 않습니다.\n\n8. 이용자 선택\n권한 거부 또는 앱 삭제가 가능합니다. 필수 권한이 없으면 기능을 사용할 수 없습니다.\n\n9. 문의\n개인정보 관련 문의는 스토어 등록 페이지의 개발자 연락 창구를 이용해 주세요.\n\n10. 변경\n본 방침은 변경될 수 있으며, 변경 시 상단 업데이트 일자가 수정됩니다.</string>
 </resources>

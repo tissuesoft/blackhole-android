@@ -227,42 +227,43 @@
                         android:text="@string/permission_accessibility_btn" />
                 </LinearLayout>
 
+                <!-- Capture row kept for binding stability but unused (accessibility screenshots). -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center_vertical"
+                    android:visibility="gone"
                     android:orientation="horizontal">
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/captureStatus"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/permission_capture"
-                            android:textColor="@color/text_primary" />
-
-                        <TextView
-                            android:id="@+id/captureStatus"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                        android:layout_height="0dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/captureButton"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
                         android:text="@string/permission_capture_btn" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/a11y_guide_title"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/accessibilityGuideButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/a11y_guide_open_btn" />
 
         <TextView
             android:layout_width="match_parent"
@@ -277,10 +278,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="24dp"
             android:lineSpacingExtra="4dp"
             android:text="@string/notice_body"
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/privacyButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp"
+            android:text="@string/privacy_open_btn" />
     </LinearLayout>
 </ScrollView>

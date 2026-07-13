@@ -19,10 +19,13 @@ import java.nio.ByteBuffer
 /**
  * MediaProjection → VirtualDisplay → ImageReader → Bitmap frames.
  * No persistence; realtime only. Secure/DRM content arrives as black.
+ *
+ * Screen off / system policy often stops MediaProjection — [onStopped] is invoked then.
  */
 class ScreenCapturer(
     private val context: Context,
-    private val onFrame: (Bitmap) -> Unit
+    private val onFrame: (Bitmap) -> Unit,
+    private val onStopped: (() -> Unit)? = null
 ) {
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
@@ -42,7 +45,7 @@ class ScreenCapturer(
     var emitFrames: Boolean = true
 
     fun start(resultCode: Int, data: Intent): Boolean {
-        stop()
+        stop(notifyStopped = false)
         val mpm = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mpm.getMediaProjection(resultCode, data) ?: return false
 
@@ -50,11 +53,10 @@ class ScreenCapturer(
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         @Suppress("DEPRECATION")
         wm.defaultDisplay.getRealMetrics(metrics)
-        // Downscale for GPU upload cost while keeping lens quality reasonable.
-        val maxSide = 1080
-        val scale = minOf(1f, maxSide.toFloat() / maxOf(metrics.widthPixels, metrics.heightPixels))
-        width = (metrics.widthPixels * scale).toInt().coerceAtLeast(2) and 1.inv()
-        height = (metrics.heightPixels * scale).toInt().coerceAtLeast(2) and 1.inv()
+        // Match display size 1:1 so the BH neighborhood does not look zoomed/stretched.
+        // Even width/height required by some VirtualDisplay / ImageReader paths.
+        width = metrics.widthPixels.coerceAtLeast(2) and 1.inv()
+        height = metrics.heightPixels.coerceAtLeast(2) and 1.inv()
         density = metrics.densityDpi
 
         thread = HandlerThread("ScreenCapturer").also { it.start() }
@@ -62,7 +64,10 @@ class ScreenCapturer(
 
         projection.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
-                stop()
+                // System stopped projection (common after screen off). Clean up without
+                // calling projection.stop() again, then notify the service.
+                releaseResources(stopProjection = false)
+                onStopped?.invoke()
             }
         }, handler)
 
@@ -95,7 +100,15 @@ class ScreenCapturer(
         return true
     }
 
-    fun stop() {
+    fun stop(notifyStopped: Boolean = false) {
+        val wasRunning = running
+        releaseResources(stopProjection = true)
+        if (notifyStopped && wasRunning) {
+            onStopped?.invoke()
+        }
+    }
+
+    private fun releaseResources(stopProjection: Boolean) {
         running = false
         try {
             virtualDisplay?.release()
@@ -107,11 +120,14 @@ class ScreenCapturer(
         } catch (_: Exception) {
         }
         imageReader = null
-        try {
-            mediaProjection?.stop()
-        } catch (_: Exception) {
-        }
+        val projection = mediaProjection
         mediaProjection = null
+        if (stopProjection) {
+            try {
+                projection?.stop()
+            } catch (_: Exception) {
+            }
+        }
         thread?.quitSafely()
         thread = null
         handler = null

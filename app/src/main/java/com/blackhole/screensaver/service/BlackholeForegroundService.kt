@@ -8,15 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.blackhole.screensaver.BlackholeApp
 import com.blackhole.screensaver.R
-import com.blackhole.screensaver.capture.ScreenCapturer
 import com.blackhole.screensaver.idle.IdleAccessibilityService
 import com.blackhole.screensaver.overlay.OverlayController
 import com.blackhole.screensaver.prefs.AppPrefs
@@ -24,16 +25,17 @@ import com.blackhole.screensaver.prefs.PermissionHelper
 import com.blackhole.screensaver.ui.MainActivity
 
 /**
- * Keeps MediaProjection + idle watch alive after the Activity is closed.
+ * Idle watch + blackhole overlay.
+ * Screen frames come from Accessibility takeScreenshot (no MediaProjection),
+ * so screen off/on does not kill the feature or require re-consent.
  */
 class BlackholeForegroundService : Service() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var capturer: ScreenCapturer? = null
     private var overlay: OverlayController? = null
 
-    private var resultCode: Int = 0
-    private var resultData: Intent? = null
+    @Volatile
+    private var pendingShow = false
 
     private val tickRunnable = object : Runnable {
         override fun run() {
@@ -46,7 +48,25 @@ class BlackholeForegroundService : Service() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BlackholeApp.ACTION_INPUT_DETECTED -> onUserInput()
-                BlackholeApp.ACTION_IDLE_MINUTES_CHANGED -> Unit // next tick picks up prefs
+                BlackholeApp.ACTION_IDLE_MINUTES_CHANGED -> Unit
+            }
+        }
+    }
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    pendingShow = false
+                    hideOverlay()
+                }
+                Intent.ACTION_SCREEN_ON,
+                Intent.ACTION_USER_PRESENT -> {
+                    // Waking the phone resets idle; feature stays armed — no re-consent.
+                    IdleAccessibilityService.markInput()
+                    pendingShow = false
+                    hideOverlay()
+                }
             }
         }
     }
@@ -56,15 +76,24 @@ class BlackholeForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        val filter = IntentFilter().apply {
-            addAction(BlackholeApp.ACTION_INPUT_DETECTED)
-            addAction(BlackholeApp.ACTION_IDLE_MINUTES_CHANGED)
-        }
         ContextCompat.registerReceiver(
             this,
             inputReceiver,
-            filter,
+            IntentFilter().apply {
+                addAction(BlackholeApp.ACTION_INPUT_DETECTED)
+                addAction(BlackholeApp.ACTION_IDLE_MINUTES_CHANGED)
+            },
             ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        ContextCompat.registerReceiver(
+            this,
+            screenReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+            },
+            ContextCompat.RECEIVER_EXPORTED
         )
         overlay = OverlayController(this) {
             IdleAccessibilityService.markInput()
@@ -76,34 +105,23 @@ class BlackholeForegroundService : Service() {
         when (intent?.action) {
             ACTION_STOP -> {
                 AppPrefs.enabled = false
+                pendingShow = false
                 hideOverlay()
-                stopCapture()
+                stopForegroundSafe()
                 stopSelf()
                 broadcastState()
                 return START_NOT_STICKY
             }
-            ACTION_DISMISS_OVERLAY -> {
-                onUserInput()
-            }
+            ACTION_DISMISS_OVERLAY -> onUserInput()
             else -> {
-                if (intent?.hasExtra(EXTRA_RESULT_CODE) == true) {
-                    resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
-                    resultData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        intent.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent.getParcelableExtra(EXTRA_RESULT_DATA)
-                    }
-                    AppPrefs.captureGranted = true
-                }
-                startAsForeground(needCapturePrompt = resultData == null)
+                startAsForeground()
                 if (AppPrefs.enabled) {
-                    ensureCapture()
                     mainHandler.removeCallbacks(tickRunnable)
                     mainHandler.post(tickRunnable)
                 } else {
+                    pendingShow = false
                     hideOverlay()
-                    stopCapture()
+                    stopForegroundSafe()
                     stopSelf()
                 }
             }
@@ -113,81 +131,63 @@ class BlackholeForegroundService : Service() {
 
     override fun onDestroy() {
         mainHandler.removeCallbacks(tickRunnable)
+        pendingShow = false
         hideOverlay()
-        stopCapture()
         try {
             unregisterReceiver(inputReceiver)
+        } catch (_: Exception) {
+        }
+        try {
+            unregisterReceiver(screenReceiver)
         } catch (_: Exception) {
         }
         if (instance === this) instance = null
         super.onDestroy()
     }
 
-    private fun startAsForeground(needCapturePrompt: Boolean) {
+    private fun startAsForeground() {
         val open = PendingIntent.getActivity(
             this,
             0,
             Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val text = if (needCapturePrompt) {
-            getString(R.string.notification_need_capture)
-        } else {
-            getString(R.string.notification_text)
-        }
         val notification: Notification = NotificationCompat.Builder(this, BlackholeApp.CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_title))
-            .setContentText(text)
+            .setContentText(getString(R.string.notification_text))
             .setSmallIcon(R.drawable.ic_blackhole)
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
                 NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
     }
 
-    private fun ensureCapture() {
-        if (capturer?.isRunning == true) return
-        val data = resultData ?: return
-        val cap = ScreenCapturer(this) { bmp ->
-            mainHandler.post {
-                val o = overlay
-                if (o != null && o.isShowing) {
-                    o.renderer.submitFrame(bmp)
-                } else {
-                    lastFrame?.let { old -> if (old !== bmp && !old.isRecycled) old.recycle() }
-                    lastFrame = bmp
-                }
+    private fun stopForegroundSafe() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
             }
-        }
-        if (cap.start(resultCode, data)) {
-            capturer = cap
-            // While waiting idle, still capture into lastFrame; when overlay shows, emit live
-            // but pause emit briefly at show to avoid immediate self-capture feedback.
-            cap.emitFrames = true
-            startAsForeground(needCapturePrompt = false)
-        } else {
-            capturer = null
-            startAsForeground(needCapturePrompt = true)
+        } catch (_: Exception) {
         }
     }
-
-    @Volatile
-    private var lastFrame: android.graphics.Bitmap? = null
 
     private fun tick() {
         if (!AppPrefs.enabled) {
             hideOverlay()
-            stopCapture()
+            stopForegroundSafe()
             stopSelf()
             return
         }
@@ -195,7 +195,10 @@ class BlackholeForegroundService : Service() {
             hideOverlay()
             return
         }
-        ensureCapture()
+        if (!isScreenOn()) {
+            hideOverlay()
+            return
+        }
 
         val idleLimit = AppPrefs.idleMinutes * 60_000L
         val idle = IdleAccessibilityService.idleMillis()
@@ -204,36 +207,55 @@ class BlackholeForegroundService : Service() {
         }
     }
 
+    private fun isScreenOn(): Boolean {
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        return pm.isInteractive
+    }
+
     private fun showOverlay() {
         val o = overlay ?: return
-        if (o.isShowing) return
-        // Seed with last captured frame (realtime screen at idle trigger).
-        lastFrame?.let { seed ->
-            if (!seed.isRecycled) {
-                o.renderer.submitFrame(seed.copy(seed.config ?: android.graphics.Bitmap.Config.ARGB_8888, false))
+        if (o.isShowing || pendingShow) return
+        if (IdleAccessibilityService.instance == null) return
+
+        pendingShow = true
+        IdleAccessibilityService.captureScreen { bmp ->
+            mainHandler.post {
+                if (!pendingShow) {
+                    bmp?.recycle()
+                    return@post
+                }
+                pendingShow = false
+                if (!AppPrefs.enabled || !isScreenOn() || overlay?.isShowing == true) {
+                    bmp?.recycle()
+                    return@post
+                }
+                if (bmp == null || bmp.isRecycled) return@post
+                presentOverlay(bmp)
             }
         }
-        // Pause frame emit while overlay is visible — MediaProjection includes our
-        // overlay window, which would otherwise create recursive feedback.
-        capturer?.emitFrames = false
+    }
+
+    private fun presentOverlay(seed: Bitmap) {
+        val o = overlay ?: run {
+            if (!seed.isRecycled) seed.recycle()
+            return
+        }
+        if (o.isShowing) {
+            if (!seed.isRecycled) seed.recycle()
+            return
+        }
+        o.renderer.submitFrame(seed)
         o.show()
     }
 
     private fun hideOverlay() {
-        capturer?.emitFrames = true
         overlay?.hide()
     }
 
     private fun onUserInput() {
         IdleAccessibilityService.markInput()
+        pendingShow = false
         hideOverlay()
-    }
-
-    private fun stopCapture() {
-        capturer?.stop()
-        capturer = null
-        lastFrame?.let { if (!it.isRecycled) it.recycle() }
-        lastFrame = null
     }
 
     private fun broadcastState() {
@@ -244,8 +266,6 @@ class BlackholeForegroundService : Service() {
         const val ACTION_START = "com.blackhole.screensaver.action.START"
         const val ACTION_STOP = "com.blackhole.screensaver.action.STOP"
         const val ACTION_DISMISS_OVERLAY = "com.blackhole.screensaver.action.DISMISS"
-        const val EXTRA_RESULT_CODE = "result_code"
-        const val EXTRA_RESULT_DATA = "result_data"
         private const val NOTIFICATION_ID = 42
         private const val TICK_MS = 1000L
 
@@ -253,16 +273,9 @@ class BlackholeForegroundService : Service() {
         var instance: BlackholeForegroundService? = null
             private set
 
-        val hasActiveCapture: Boolean
-            get() = instance?.capturer?.isRunning == true
-
-        fun start(context: Context, resultCode: Int? = null, data: Intent? = null) {
+        fun start(context: Context) {
             val intent = Intent(context, BlackholeForegroundService::class.java).apply {
                 action = ACTION_START
-                if (resultCode != null && data != null) {
-                    putExtra(EXTRA_RESULT_CODE, resultCode)
-                    putExtra(EXTRA_RESULT_DATA, data)
-                }
             }
             ContextCompat.startForegroundService(context, intent)
         }
@@ -271,7 +284,6 @@ class BlackholeForegroundService : Service() {
             val intent = Intent(context, BlackholeForegroundService::class.java).apply {
                 action = ACTION_STOP
             }
-            // If service not running, start briefly to handle STOP, or just stopService.
             try {
                 ContextCompat.startForegroundService(context, intent)
             } catch (_: Exception) {

@@ -2,6 +2,7 @@ package com.blackhole.screensaver.prefs
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.AppOpsManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,13 +20,36 @@ object PermissionHelper {
     fun notificationsAllowed(context: Context): Boolean =
         NotificationManagerCompat.from(context).areNotificationsEnabled()
 
+    /**
+     * Robust check: Settings.Secure first (survives brief service reconnect after
+     * screen on), then live instance, then AccessibilityManager list.
+     */
     fun isAccessibilityEnabled(context: Context): Boolean {
+        if (IdleAccessibilityService.instance != null) return true
+
+        val expected = ComponentName(context, IdleAccessibilityService::class.java)
+        val secure = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ).orEmpty()
+        if (secure.isNotEmpty()) {
+            val match = secure.split(':').any { raw ->
+                val cn = ComponentName.unflattenFromString(raw.trim())
+                cn != null && cn.packageName == expected.packageName &&
+                    (cn.className == expected.className ||
+                        cn.className.endsWith(expected.className) ||
+                        expected.className.endsWith(cn.className.removePrefix(".")))
+            }
+            if (match) return true
+        }
+
         val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
         val enabled = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-        val target = IdleAccessibilityService::class.java.canonicalName
+        val target = IdleAccessibilityService::class.java.name
         return enabled.any { info ->
             val si = info.resolveInfo?.serviceInfo ?: return@any false
-            si.packageName == context.packageName && si.name == target
+            if (si.packageName != context.packageName) return@any false
+            si.name == target || si.name.endsWith(".IdleAccessibilityService")
         }
     }
 
@@ -34,8 +58,7 @@ object PermissionHelper {
     fun allRequiredGranted(context: Context): Boolean =
         canDrawOverlays(context) &&
             notificationsAllowed(context) &&
-            isAccessibilityEnabled(context) &&
-            hasCaptureConsent()
+            isAccessibilityEnabled(context)
 
     fun overlaySettingsIntent(context: Context): Intent =
         Intent(

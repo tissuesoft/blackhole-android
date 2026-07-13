@@ -14,8 +14,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Fullscreen quad + LENS_FRAG gravity-lens shader.
- * Screen frames arrive as Bitmaps from MediaProjection / ImageReader.
+ * Transparent overlay: real screen shows 1:1 outside the black hole.
+ * Only the BH neighborhood samples a frozen capture with mild gravity-lens distortion.
  */
 class BlackholeRenderer : GLSurfaceView.Renderer {
 
@@ -32,9 +32,10 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     private var program = 0
     private var textureId = 0
     private var hasTexture = false
+    private var texWidth = 0
+    private var texHeight = 0
 
     private var aPosition = 0
-    private var aTexCoord = 0
     private var uTex = 0
     private var uResolution = 0
     private var uCenter = 0
@@ -42,9 +43,9 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     private var uK = 0
     private var uTime = 0
     private var uHorizon = 0
+    private var uEffectRadius = 0
 
     private lateinit var vertexBuffer: FloatBuffer
-    private lateinit var texBuffer: FloatBuffer
 
     private var startNs = 0L
     private var centerX = 0f
@@ -53,10 +54,11 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     private var velY = 80f
     private var lastFrameNs = 0L
 
-    // Tuned for phone screens (px). Desktop values scale with resolution.
+    // Mild lens: distort space near BH without flipping / stretching icons.
     private var rs = 90f
-    private var k = 1.35f
-    private var horizonFactor = 0.55f
+    private var k = 0.42f
+    private var horizonFactor = 0.52f
+    private var effectRadiusFactor = 2.6f
 
     fun submitFrame(bitmap: Bitmap) {
         val old = pendingFrame.getAndSet(bitmap)
@@ -71,10 +73,18 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0f, 0f, 0f, 1f)
+        // New EGL surface → new GL texture. Must reset or the 2nd show uploads with
+        // texSubImage2D into an empty texture and the BH samples pure black.
+        hasTexture = false
+        texWidth = 0
+        texHeight = 0
+
+        GLES20.glClearColor(0f, 0f, 0f, 0f)
+        GLES20.glEnable(GLES20.GL_BLEND)
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+
         program = buildProgram(VERTEX, FRAGMENT)
         aPosition = GLES20.glGetAttribLocation(program, "a_position")
-        aTexCoord = GLES20.glGetAttribLocation(program, "a_texCoord")
         uTex = GLES20.glGetUniformLocation(program, "u_tex")
         uResolution = GLES20.glGetUniformLocation(program, "u_resolution")
         uCenter = GLES20.glGetUniformLocation(program, "u_center")
@@ -82,6 +92,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         uK = GLES20.glGetUniformLocation(program, "u_k")
         uTime = GLES20.glGetUniformLocation(program, "u_time")
         uHorizon = GLES20.glGetUniformLocation(program, "u_horizon")
+        uEffectRadius = GLES20.glGetUniformLocation(program, "u_effectRadius")
 
         val verts = floatArrayOf(
             -1f, -1f,
@@ -89,20 +100,9 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
             -1f, 1f,
             1f, 1f
         )
-        // ImageReader / Bitmap origin is top-left; GL textures are bottom-left.
-        // Flip V so captured screen is upright. Re-verify on device.
-        val tex = floatArrayOf(
-            0f, 1f,
-            1f, 1f,
-            0f, 0f,
-            1f, 0f
-        )
         vertexBuffer = ByteBuffer.allocateDirect(verts.size * 4)
             .order(ByteOrder.nativeOrder()).asFloatBuffer().put(verts)
         vertexBuffer.position(0)
-        texBuffer = ByteBuffer.allocateDirect(tex.size * 4)
-            .order(ByteOrder.nativeOrder()).asFloatBuffer().put(tex)
-        texBuffer.position(0)
 
         val ids = IntArray(1)
         GLES20.glGenTextures(1, ids, 0)
@@ -123,8 +123,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, viewWidth, viewHeight)
         centerX = viewWidth * 0.35f
         centerY = viewHeight * 0.4f
-        rs = (minOf(viewWidth, viewHeight) * 0.12f).coerceIn(60f, 160f)
-        // Soft DVD-logo style speeds scaled to screen.
+        rs = (minOf(viewWidth, viewHeight) * 0.14f).coerceIn(70f, 180f)
         velX = viewWidth * 0.045f
         velY = viewHeight * 0.035f
     }
@@ -140,6 +139,8 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         if (!hasTexture) return
 
+        val effectRadius = rs * effectRadiusFactor
+
         GLES20.glUseProgram(program)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
@@ -150,20 +151,18 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         GLES20.glUniform1f(uK, k)
         GLES20.glUniform1f(uTime, (now - startNs) / 1_000_000_000f)
         GLES20.glUniform1f(uHorizon, horizonFactor)
+        GLES20.glUniform1f(uEffectRadius, effectRadius)
 
         GLES20.glEnableVertexAttribArray(aPosition)
         GLES20.glVertexAttribPointer(aPosition, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer)
-        GLES20.glEnableVertexAttribArray(aTexCoord)
-        GLES20.glVertexAttribPointer(aTexCoord, 2, GLES20.GL_FLOAT, false, 0, texBuffer)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         GLES20.glDisableVertexAttribArray(aPosition)
-        GLES20.glDisableVertexAttribArray(aTexCoord)
     }
 
     private fun roam(dt: Float) {
         centerX += velX * dt
         centerY += velY * dt
-        val margin = rs * horizonFactor + 8f
+        val margin = rs * effectRadiusFactor + 8f
         if (centerX < margin) {
             centerX = margin
             velX = kotlin.math.abs(velX)
@@ -178,7 +177,6 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
             centerY = viewHeight - margin
             velY = -kotlin.math.abs(velY)
         }
-        // Tiny wobble so path is less mechanical.
         centerX += (sin(System.nanoTime() / 1.7e9) * 0.15).toFloat()
         centerY += (cos(System.nanoTime() / 2.1e9) * 0.15).toFloat()
     }
@@ -187,16 +185,20 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         val bmp = pendingFrame.getAndSet(null) ?: return
         try {
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
-            if (!hasTexture) {
+            val sizeChanged = bmp.width != texWidth || bmp.height != texHeight
+            if (!hasTexture || sizeChanged) {
                 GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bmp, 0)
+                texWidth = bmp.width
+                texHeight = bmp.height
                 hasTexture = true
             } else {
                 GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmp)
             }
         } catch (_: Exception) {
-            // Size may change after rotation — reallocate.
             try {
                 GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bmp, 0)
+                texWidth = bmp.width
+                texHeight = bmp.height
                 hasTexture = true
             } catch (_: Exception) {
                 // ignore bad frame
@@ -240,17 +242,15 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     companion object {
         private const val VERTEX = """
             attribute vec2 a_position;
-            attribute vec2 a_texCoord;
-            varying vec2 v_texCoord;
             void main() {
-                v_texCoord = a_texCoord;
                 gl_Position = vec4(a_position, 0.0, 1.0);
             }
         """
 
-        // Desktop LENS_FRAG port. Uses gl_FragCoord for lens math;
-        // texture sampling uses flipped UV from vertex stage via v_texCoord only for passthrough —
-        // lens math reconstructs screen-space UV like the desktop version.
+        /**
+         * Far field: fully transparent → real phone UI at 1:1.
+         * Near BH: opaque sample of frozen capture + soft radial lens (no icon flip).
+         */
         private const val FRAGMENT = """
             precision mediump float;
             uniform sampler2D u_tex;
@@ -260,29 +260,47 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
             uniform float u_k;
             uniform float u_time;
             uniform float u_horizon;
-            varying vec2 v_texCoord;
+            uniform float u_effectRadius;
 
             void main() {
                 vec2 p = gl_FragCoord.xy;
                 vec2 d = p - u_center;
                 float r = max(length(d), 0.0001);
-                vec2 dir = d / r;
+
+                if (r > u_effectRadius) {
+                    gl_FragColor = vec4(0.0);
+                    return;
+                }
+
                 float horizon = u_rs * u_horizon;
                 if (r < horizon) {
                     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
                     return;
                 }
-                float displace = (u_rs * u_rs * u_k) / r;
+
+                vec2 dir = d / r;
+                // Falloff so only the neighborhood bends; far field displace → 0.
+                float falloff = 1.0 - smoothstep(horizon, u_effectRadius, r);
+                float displace = (u_rs * u_rs * u_k) / r * falloff * falloff;
+                // Cap pull so samples never cross the horizon (avoids icon inversion).
+                displace = min(displace, max(r - horizon - 1.0, 0.0));
+
                 vec2 sample_px = p - dir * displace;
-                // Flip Y for Android capture bitmaps (top-left origin).
-                vec2 uv = vec2(sample_px.x / u_resolution.x, 1.0 - (sample_px.y / u_resolution.y));
+                vec2 uv = vec2(
+                    sample_px.x / u_resolution.x,
+                    1.0 - (sample_px.y / u_resolution.y)
+                );
                 uv = clamp(uv, vec2(0.001), vec2(0.999));
                 vec3 col = texture2D(u_tex, uv).rgb;
-                col *= smoothstep(horizon, horizon * 2.2, r);
-                float x = (r - horizon * 1.06) / (u_rs * 0.16);
+
+                // Soft darkening into the hole, not a hard stretch.
+                col *= mix(0.35, 1.0, smoothstep(horizon, horizon * 2.4, r));
+
+                float x = (r - horizon * 1.05) / max(u_rs * 0.14, 1.0);
                 float ring = exp(-x * x);
-                float flicker = 0.8 + 0.2 * sin(u_time * 10.0 + r * 0.05);
-                col += vec3(1.0, 0.6, 0.15) * ring * flicker * 1.6;
+                float flicker = 0.85 + 0.15 * sin(u_time * 9.0 + r * 0.04);
+                col += vec3(1.0, 0.55, 0.12) * ring * flicker * 1.35;
+
                 gl_FragColor = vec4(col, 1.0);
             }
         """

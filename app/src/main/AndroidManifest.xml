@@ -3,7 +3,7 @@
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -27,10 +27,24 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.PrivacyPolicyActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.AccessibilityGuideActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
         <service
             android:name=".service.BlackholeForegroundService"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Idle blackhole screensaver monitor" />
+        </service>
 
         <service
             android:name=".idle.IdleAccessibilityService"
