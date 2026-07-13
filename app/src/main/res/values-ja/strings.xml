@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ブラックホール スクリーンセーバー</string>
+    <string name="notification_channel_name">ブラックホール サービス</string>
+    <string name="notification_title">ブラックホールが動作中</string>
+    <string name="notification_text">アイドルを監視しています。タップで設定を開きます。</string>
+    <string name="notification_need_capture">タップして画面キャプチャを許可</string>
+    <string name="settings_title">ブラックホール スクリーンセーバー</string>
+    <string name="toggle_label">ブラックホール機能</string>
+    <string name="toggle_on">ON</string>
+    <string name="toggle_off">OFF</string>
+    <string name="idle_label">無操作後に表示するまでの分数</string>
+    <string name="idle_value_format">%1$d分</string>
+    <string name="permissions_title">権限</string>
+    <string name="permission_overlay">他のアプリの上に表示</string>
+    <string name="permission_overlay_btn">オーバーレイ設定を開く</string>
+    <string name="permission_notifications">通知</string>
+    <string name="permission_notifications_btn">通知を許可</string>
+    <string name="permission_accessibility">ユーザー補助（アイドル検知）</string>
+    <string name="permission_accessibility_btn">ユーザー補助設定を開く</string>
+    <string name="permission_capture">画面キャプチャ（MediaProjection）</string>
+    <string name="permission_capture_btn">画面キャプチャを要求</string>
+    <string name="permission_granted">許可済み</string>
+    <string name="permission_missing">必要</string>
+    <string name="notices_title">注意事項</string>
+    <string name="notice_body">• 画面キャプチャ同意と常時通知は Android ポリシー上必須です。\n• セキュア/DRM 画面（銀行、Netflix など）は黒く表示されます。\n• Android 専用で、iOS には対応していません。\n• 機能が ON なら、アプリを終了してもブラックホールが動作し続けることがあります。</string>
+    <string name="status_ready">権限の準備ができました。バックグラウンドで動作できます。</string>
+    <string name="status_need_perms">必要な権限を許可してから機能を ON にしてください。</string>
+    <string name="widget_on">ブラックホール ON</string>
+    <string name="widget_off">ブラックホール OFF</string>
+    <string name="widget_description">ブラックホールのオン/オフ</string>
+    <string name="accessibility_description">アプリ横断のタッチ入力を検知し、アイドル後にブラックホールを表示、操作で閉じます。</string>
+    <string name="toast_need_permissions">先に必要な権限を許可してください</string>
+    <string name="toast_enabled">ブラックホールをオンにしました</string>
+    <string name="toast_disabled">ブラックホールをオフにしました</string>
+</resources>

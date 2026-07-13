@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg">#FF0B0B10</color>
+    <color name="surface">#FF16161F</color>
+    <color name="accent">#FFE8952A</color>
+    <color name="accent_dim">#66E8952A</color>
+    <color name="text_primary">#FFF2F2F5</color>
+    <color name="text_secondary">#FFA0A0AB</color>
+    <color name="on">#FF2ECC71</color>
+    <color name="off">#FF8E8E98</color>
+    <color name="danger">#FFE74C3C</color>
+</resources>

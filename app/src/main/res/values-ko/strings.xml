@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">블랙홀 스크린세이버</string>
+    <string name="notification_channel_name">블랙홀 서비스</string>
+    <string name="notification_title">블랙홀 스크린세이버 동작 중</string>
+    <string name="notification_text">유휴 시간을 감시합니다. 탭하면 설정으로 이동합니다.</string>
+    <string name="notification_need_capture">탭하여 화면 캡처를 허용하세요</string>
+    <string name="settings_title">블랙홀 스크린세이버</string>
+    <string name="toggle_label">블랙홀 기능</string>
+    <string name="toggle_on">켜짐</string>
+    <string name="toggle_off">꺼짐</string>
+    <string name="idle_label">입력 없을 때 블랙홀 표시까지</string>
+    <string name="idle_value_format">%1$d분</string>
+    <string name="permissions_title">권한</string>
+    <string name="permission_overlay">다른 앱 위에 표시</string>
+    <string name="permission_overlay_btn">오버레이 설정 열기</string>
+    <string name="permission_notifications">알림</string>
+    <string name="permission_notifications_btn">알림 허용</string>
+    <string name="permission_accessibility">접근성 (유휴 감지)</string>
+    <string name="permission_accessibility_btn">접근성 설정 열기</string>
+    <string name="permission_capture">화면 캡처 (MediaProjection)</string>
+    <string name="permission_capture_btn">화면 캡처 요청</string>
+    <string name="permission_granted">허용됨</string>
+    <string name="permission_missing">필요함</string>
+    <string name="notices_title">안내</string>
+    <string name="notice_body">• 화면 캡처 동의와 상시 알림은 Android 정책상 필수입니다.\n• 보안/DRM 화면(뱅킹, 넷플릭스 등)은 검게 표시됩니다.\n• Android 전용이며 iOS는 지원하지 않습니다.\n• 기능이 켜져 있으면 앱을 종료해도 블랙홀이 계속 동작할 수 있습니다.</string>
+    <string name="status_ready">권한이 준비되었습니다. 백그라운드에서 동작할 수 있습니다.</string>
+    <string name="status_need_perms">필요한 권한을 허용한 뒤 기능을 켜세요.</string>
+    <string name="widget_on">블랙홀 켜짐</string>
+    <string name="widget_off">블랙홀 꺼짐</string>
+    <string name="widget_description">블랙홀 스크린세이버 켜기/끄기</string>
+    <string name="accessibility_description">앱 전반의 터치·입력을 감지해 유휴 후 블랙홀을 표시하고, 입력 시 즉시 닫습니다.</string>
+    <string name="toast_need_permissions">먼저 필요한 권한을 허용해 주세요</string>
+    <string name="toast_enabled">블랙홀이 켜졌습니다</string>
+    <string name="toast_disabled">블랙홀이 꺼졌습니다</string>
+</resources>

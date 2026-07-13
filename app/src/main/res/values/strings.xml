@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Blackhole Screensaver</string>
+    <string name="notification_channel_name">Blackhole service</string>
+    <string name="notification_title">Blackhole Screensaver is active</string>
+    <string name="notification_text">Watching for idle time. Tap to open settings.</string>
+    <string name="notification_need_capture">Tap to allow screen capture</string>
+    <string name="settings_title">Blackhole Screensaver</string>
+    <string name="toggle_label">Blackhole feature</string>
+    <string name="toggle_on">ON</string>
+    <string name="toggle_off">OFF</string>
+    <string name="idle_label">Idle minutes before blackhole</string>
+    <string name="idle_value_format">%1$d min</string>
+    <string name="permissions_title">Permissions</string>
+    <string name="permission_overlay">Draw over other apps</string>
+    <string name="permission_overlay_btn">Open overlay settings</string>
+    <string name="permission_notifications">Notifications</string>
+    <string name="permission_notifications_btn">Allow notifications</string>
+    <string name="permission_accessibility">Accessibility (idle detection)</string>
+    <string name="permission_accessibility_btn">Open accessibility settings</string>
+    <string name="permission_capture">Screen capture (MediaProjection)</string>
+    <string name="permission_capture_btn">Request screen capture</string>
+    <string name="permission_granted">Granted</string>
+    <string name="permission_missing">Required</string>
+    <string name="notices_title">Notices</string>
+    <string name="notice_body">• Screen capture consent and a persistent notification are required by Android policy.\n• Secure / DRM screens (banking, Netflix, etc.) appear black.\n• Android only — iOS is not supported.\n• If the feature is ON, the blackhole can keep running even after you leave the app.</string>
+    <string name="status_ready">All permissions ready. Feature can run in background.</string>
+    <string name="status_need_perms">Grant all permissions, then turn the feature ON.</string>
+    <string name="widget_on">Blackhole ON</string>
+    <string name="widget_off">Blackhole OFF</string>
+    <string name="widget_description">Toggle blackhole screensaver</string>
+    <string name="accessibility_description">Detects touch and input across apps so the blackhole can appear after idle time and dismiss on interaction.</string>
+    <string name="toast_need_permissions">Grant required permissions first</string>
+    <string name="toast_enabled">Blackhole enabled</string>
+    <string name="toast_disabled">Blackhole disabled</string>
+</resources>
