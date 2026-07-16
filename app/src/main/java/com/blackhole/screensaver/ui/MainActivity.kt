@@ -59,6 +59,23 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         })
 
+        binding.sizeSeekBar.max = AppPrefs.BH_SIZE_INDEX_MAX
+        binding.sizeSeekBar.progress = AppPrefs.blackholeSizeIndex
+        updateSizeLabel(AppPrefs.blackholeSizeIndex)
+
+        binding.sizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val index = progress.coerceIn(AppPrefs.BH_SIZE_INDEX_MIN, AppPrefs.BH_SIZE_INDEX_MAX)
+                updateSizeLabel(index)
+                if (fromUser) {
+                    AppPrefs.blackholeSizeIndex = index
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
+
         binding.enableSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (updatingUi) return@setOnCheckedChangeListener
             if (isChecked) {
@@ -152,6 +169,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateIdleLabel(seconds: Int) {
         binding.idleValueText.text = getString(R.string.idle_value_format, seconds)
+    }
+
+    private fun updateSizeLabel(index: Int) {
+        binding.sizeValueText.setText(
+            when (index) {
+                1 -> R.string.size_value_15x
+                2 -> R.string.size_value_2x
+                else -> R.string.size_value_1x
+            }
+        )
     }
 
     private fun refreshPermissionUi() {

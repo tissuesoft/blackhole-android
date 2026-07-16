@@ -25,6 +25,10 @@
     <string name="permission_missing">必要</string>
     <string name="notices_title">注意事項</string>
     <string name="idle_hint">YouTube や音楽など、メディア音声の再生中はブラックホールを表示しません。</string>
+    <string name="size_label">ブラックホールの大きさ</string>
+    <string name="size_value_1x">1×（最小）</string>
+    <string name="size_value_15x">1.5×</string>
+    <string name="size_value_2x">2×</string>
     <string name="notice_body">• 画面キャプチャ同意と常時通知は Android ポリシー上必須です。\n• YouTube や音楽など、メディア音声の再生中はブラックホールを表示しません。\n• セキュア/DRM 画面（銀行、Netflix など）は黒く表示されます。\n• Android 専用で、iOS には対応していません。\n• 機能が ON なら、アプリを終了してもブラックホールが動作し続けることがあります。</string>
     <string name="status_ready">権限の準備ができました。バックグラウンドで動作できます。</string>
     <string name="status_need_perms">必要な権限を許可してから機能を ON にしてください。</string>

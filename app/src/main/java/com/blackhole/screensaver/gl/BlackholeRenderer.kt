@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
+import com.blackhole.screensaver.prefs.AppPrefs
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -15,7 +16,11 @@ import kotlin.math.sin
 
 /**
  * Transparent overlay: real screen shows 1:1 outside the black hole.
- * Only the BH neighborhood samples a frozen capture with mild gravity-lens distortion.
+ * Distortion matches desktop [shaders.py] LENS_FRAG:
+ *   displace = (rs² * k) / r, darken + photon ring.
+ *
+ * Size 1×/1.5×/2× grows the visible hole & ring only; lens pull always uses
+ * 1× baseRs so the frozen wallpaper does not zoom with size.
  */
 class BlackholeRenderer : GLSurfaceView.Renderer {
 
@@ -29,6 +34,9 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     var viewHeight: Int = 1
         private set
 
+    @Volatile
+    var sizeScale: Float = 1f
+
     private var program = 0
     private var textureId = 0
     private var hasTexture = false
@@ -40,6 +48,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     private var uResolution = 0
     private var uCenter = 0
     private var uRs = 0
+    private var uBaseRs = 0
     private var uK = 0
     private var uTime = 0
     private var uHorizon = 0
@@ -54,11 +63,12 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     private var velY = 80f
     private var lastFrameNs = 0L
 
-    // Mild lens: distort space near BH without flipping / stretching icons.
+    // Tuned like desktop config.py (1080p reference), then scaled to this view.
+    private var baseRs = 90f
     private var rs = 90f
-    private var k = 0.42f
-    private var horizonFactor = 0.52f
-    private var effectRadiusFactor = 2.6f
+    private var k = 9.0f
+    private var horizonFactor = 1.75f
+    private var effectRadiusFactor = 4.0f
 
     fun submitFrame(bitmap: Bitmap) {
         val old = pendingFrame.getAndSet(bitmap)
@@ -73,8 +83,6 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        // New EGL surface → new GL texture. Must reset or the 2nd show uploads with
-        // texSubImage2D into an empty texture and the BH samples pure black.
         hasTexture = false
         texWidth = 0
         texHeight = 0
@@ -89,6 +97,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         uResolution = GLES20.glGetUniformLocation(program, "u_resolution")
         uCenter = GLES20.glGetUniformLocation(program, "u_center")
         uRs = GLES20.glGetUniformLocation(program, "u_rs")
+        uBaseRs = GLES20.glGetUniformLocation(program, "u_baseRs")
         uK = GLES20.glGetUniformLocation(program, "u_k")
         uTime = GLES20.glGetUniformLocation(program, "u_time")
         uHorizon = GLES20.glGetUniformLocation(program, "u_horizon")
@@ -123,7 +132,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         GLES20.glViewport(0, 0, viewWidth, viewHeight)
         centerX = viewWidth * 0.35f
         centerY = viewHeight * 0.4f
-        rs = (minOf(viewWidth, viewHeight) * 0.14f).coerceIn(70f, 180f)
+        recomputeRs()
         velX = viewWidth * 0.045f
         velY = viewHeight * 0.035f
     }
@@ -132,6 +141,12 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         val now = System.nanoTime()
         val dt = ((now - lastFrameNs) / 1_000_000_000f).coerceIn(0f, 0.05f)
         lastFrameNs = now
+
+        val preferred = AppPrefs.blackholeSizeScale
+        if (preferred != sizeScale) {
+            sizeScale = preferred
+            recomputeRs()
+        }
 
         uploadPendingTexture()
         roam(dt)
@@ -148,6 +163,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         GLES20.glUniform2f(uResolution, viewWidth.toFloat(), viewHeight.toFloat())
         GLES20.glUniform2f(uCenter, centerX, centerY)
         GLES20.glUniform1f(uRs, rs)
+        GLES20.glUniform1f(uBaseRs, baseRs)
         GLES20.glUniform1f(uK, k)
         GLES20.glUniform1f(uTime, (now - startNs) / 1_000_000_000f)
         GLES20.glUniform1f(uHorizon, horizonFactor)
@@ -159,10 +175,16 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         GLES20.glDisableVertexAttribArray(aPosition)
     }
 
+    private fun recomputeRs() {
+        // Desktop blackhole_rs @ 1080p, then half for mobile overlay sizing.
+        val minDim = minOf(viewWidth, viewHeight).toFloat()
+        baseRs = (58f * (minDim / 1080f) * 0.5f).coerceIn(24f, 80f)
+        rs = baseRs * sizeScale.coerceIn(1f, 2f)
+    }
+
     private fun roam(dt: Float) {
         centerX += velX * dt
         centerY += velY * dt
-        // Allow the BH core to reach screen edges (effect may clip off-screen).
         val margin = rs * horizonFactor
         if (centerX < margin) {
             centerX = margin
@@ -178,22 +200,31 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
             centerY = viewHeight - margin
             velY = -kotlin.math.abs(velY)
         }
-        centerX += (sin(System.nanoTime() / 1.7e9) * 0.15).toFloat()
-        centerY += (cos(System.nanoTime() / 2.1e9) * 0.15).toFloat()
+        val jitter = 0.08f / sizeScale.coerceIn(1f, 2f)
+        centerX += (sin(System.nanoTime() / 1.7e9) * jitter).toFloat()
+        centerY += (cos(System.nanoTime() / 2.1e9) * jitter).toFloat()
     }
 
     private fun uploadPendingTexture() {
         val bmp = pendingFrame.getAndSet(null) ?: return
+        var toUpload = bmp
+        var scaled: Bitmap? = null
         try {
+            if (viewWidth > 1 && viewHeight > 1 &&
+                (bmp.width != viewWidth || bmp.height != viewHeight)
+            ) {
+                scaled = Bitmap.createScaledBitmap(bmp, viewWidth, viewHeight, true)
+                toUpload = scaled
+            }
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
-            val sizeChanged = bmp.width != texWidth || bmp.height != texHeight
+            val sizeChanged = toUpload.width != texWidth || toUpload.height != texHeight
             if (!hasTexture || sizeChanged) {
-                GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bmp, 0)
-                texWidth = bmp.width
-                texHeight = bmp.height
+                GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, toUpload, 0)
+                texWidth = toUpload.width
+                texHeight = toUpload.height
                 hasTexture = true
             } else {
-                GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bmp)
+                GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, toUpload)
             }
         } catch (_: Exception) {
             try {
@@ -205,6 +236,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
                 // ignore bad frame
             }
         } finally {
+            if (scaled != null && scaled !== bmp && !scaled.isRecycled) scaled.recycle()
             if (!bmp.isRecycled) bmp.recycle()
         }
     }
@@ -249,15 +281,19 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         """
 
         /**
-         * Far field: fully transparent → real phone UI at 1:1.
-         * Near BH: opaque sample of frozen capture + soft radial lens (no icon flip).
+         * Port of desktop shaders.py LENS_FRAG for a transparent Android overlay.
+         *
+         * - Lens: displace = (baseRs² * k) / r  (always 1× baseRs → no wallpaper zoom)
+         * - Hole / ring use visual u_rs (= baseRs * sizeScale)
+         * - Outside u_effectRadius: fully transparent (live UI 1:1)
          */
         private const val FRAGMENT = """
-            precision mediump float;
+            precision highp float;
             uniform sampler2D u_tex;
             uniform vec2 u_resolution;
             uniform vec2 u_center;
             uniform float u_rs;
+            uniform float u_baseRs;
             uniform float u_k;
             uniform float u_time;
             uniform float u_horizon;
@@ -273,6 +309,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
                     return;
                 }
 
+                // Visual event horizon grows with size setting (desktop: rs * horizon).
                 float horizon = u_rs * u_horizon;
                 if (r < horizon) {
                     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -280,27 +317,33 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
                 }
 
                 vec2 dir = d / r;
-                // Falloff so only the neighborhood bends; far field displace → 0.
-                float falloff = 1.0 - smoothstep(horizon, u_effectRadius, r);
-                float displace = (u_rs * u_rs * u_k) / r * falloff * falloff;
-                // Cap pull so samples never cross the horizon (avoids icon inversion).
+
+                // Desktop LENS_FRAG: sample = p - dir * (rs*rs*k / r)
+                // Use 1× baseRs only so enlarging the hole does not magnify wallpaper.
+                float displace = (u_baseRs * u_baseRs * u_k) / r;
+                // Softly kill pull near the overlay cutoff (hard alpha — no white rim).
+                float edge = smoothstep(u_effectRadius, u_effectRadius * 0.82, r);
+                displace *= edge;
+                // Keep samples outside the black disc (avoids icon inversion).
                 displace = min(displace, max(r - horizon - 1.0, 0.0));
 
                 vec2 sample_px = p - dir * displace;
-                vec2 uv = vec2(
-                    sample_px.x / u_resolution.x,
-                    1.0 - (sample_px.y / u_resolution.y)
-                );
+                vec2 uv = sample_px / u_resolution;
+                uv.y = 1.0 - uv.y;
                 uv = clamp(uv, vec2(0.001), vec2(0.999));
+
                 vec3 col = texture2D(u_tex, uv).rgb;
 
-                // Soft darkening into the hole, not a hard stretch.
-                col *= mix(0.35, 1.0, smoothstep(horizon, horizon * 2.4, r));
+                // Desktop darkening toward the horizon.
+                float darken = smoothstep(horizon, horizon * 2.2, r);
+                col *= darken;
 
-                float x = (r - horizon * 1.05) / max(u_rs * 0.14, 1.0);
+                // Desktop photon ring — static (no time flicker → no background sparkle).
+                float ring_center = horizon * 1.06;
+                float ring_width = max(u_rs * 0.16, 1.0);
+                float x = (r - ring_center) / ring_width;
                 float ring = exp(-x * x);
-                float flicker = 0.85 + 0.15 * sin(u_time * 9.0 + r * 0.04);
-                col += vec3(1.0, 0.55, 0.12) * ring * flicker * 1.35;
+                col += vec3(1.0, 0.6, 0.15) * ring * 1.35;
 
                 gl_FragColor = vec4(col, 1.0);
             }

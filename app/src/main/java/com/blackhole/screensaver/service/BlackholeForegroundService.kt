@@ -258,6 +258,7 @@ class BlackholeForegroundService : Service() {
             if (!seed.isRecycled) seed.recycle()
             return
         }
+        o.renderer.sizeScale = AppPrefs.blackholeSizeScale
         o.renderer.submitFrame(seed)
         o.show()
     }
