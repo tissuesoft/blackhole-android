@@ -66,7 +66,7 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
     // Tuned like desktop config.py (1080p reference), then scaled to this view.
     private var baseRs = 90f
     private var rs = 90f
-    private var k = 18.0f
+    private var k = 13.5f
     private var horizonFactor = 1.75f
     private var effectRadiusFactor = 9.0f
 
