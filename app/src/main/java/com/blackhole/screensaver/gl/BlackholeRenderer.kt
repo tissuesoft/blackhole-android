@@ -325,7 +325,10 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
                 float edge = smoothstep(u_effectRadius, u_effectRadius * 0.82, r);
                 displace *= edge;
                 // Keep samples outside the black disc (avoids icon inversion).
-                displace = min(displace, max(r - horizon - 1.0, 0.0));
+                // Soft saturation instead of a hard min(): the strong-field zone
+                // still scales with u_k instead of clipping flat at the cap.
+                float cap = max(r - horizon - 1.0, 0.0);
+                displace = cap * (1.0 - exp(-displace / max(cap, 0.0001)));
 
                 vec2 sample_px = p - dir * displace;
                 vec2 uv = sample_px / u_resolution;
