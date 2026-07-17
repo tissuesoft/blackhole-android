@@ -16,8 +16,10 @@ import kotlin.math.sin
 
 /**
  * Transparent overlay: real screen shows 1:1 outside the black hole.
- * Distortion matches desktop [shaders.py] LENS_FRAG:
- *   displace = (rs² * k) / r, darken + photon ring.
+ * Distortion is based on desktop [shaders.py] LENS_FRAG but with a steeper
+ * inverse-square falloff:
+ *   displace = (rs² * k * horizon) / r², darken + photon ring.
+ * → much stronger pull near the horizon, rapidly weaker farther away.
  *
  * Size 1×/1.5×/2× grows the visible hole & ring only; lens pull always uses
  * 1× baseRs so the frozen wallpaper does not zoom with size.
@@ -283,7 +285,8 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
         /**
          * Port of desktop shaders.py LENS_FRAG for a transparent Android overlay.
          *
-         * - Lens: displace = (baseRs² * k) / r  (always 1× baseRs → no wallpaper zoom)
+         * - Lens: displace = (baseRs² * k * horizon) / r²  (always 1× baseRs → no wallpaper zoom)
+         *   1/r² falloff: strong near the hole, fades fast with distance.
          * - Hole / ring use visual u_rs (= baseRs * sizeScale)
          * - Outside u_effectRadius: fully transparent (live UI 1:1)
          */
@@ -316,11 +319,16 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
                     return;
                 }
 
-                vec2 dir = d / r;
-
-                // Desktop LENS_FRAG: sample = p - dir * (rs*rs*k / r)
+                // Inverse-square falloff: pull is much stronger right next to
+                // the horizon and fades quickly with distance (desktop was 1/r).
+                // Normalized at r = horizon so near-field strength matches the
+                // old 1/r formula there, then decays as 1/r² beyond it.
                 // Use 1× baseRs only so enlarging the hole does not magnify wallpaper.
-                float displace = (u_baseRs * u_baseRs * u_k) / r;
+                float displace = (u_baseRs * u_baseRs * u_k * horizon) / (r * r);
+                // Extra suction boost in the near field: pixels close to the
+                // horizon get pulled almost all the way in.
+                float nearField = exp(-(r - horizon) / horizon);
+                displace *= 1.0 + 1.6 * nearField;
                 // Softly kill pull near the overlay cutoff (hard alpha — no white rim).
                 float edge = smoothstep(u_effectRadius, u_effectRadius * 0.82, r);
                 displace *= edge;
@@ -330,7 +338,15 @@ class BlackholeRenderer : GLSurfaceView.Renderer {
                 float cap = max(r - horizon - 1.0, 0.0);
                 displace = cap * (1.0 - exp(-displace / max(cap, 0.0001)));
 
-                vec2 sample_px = p - dir * displace;
+                // Spiral in-fall: rotate the sample around the hole with an
+                // angle that peaks at the horizon and dies off with distance.
+                // Background appears to swirl while being dragged inward.
+                float swirl = 2.4 * exp(-(r - horizon) / (horizon * 1.1)) * edge;
+                float cs = cos(swirl);
+                float sn = sin(swirl);
+                vec2 rd = vec2(d.x * cs - d.y * sn, d.x * sn + d.y * cs);
+
+                vec2 sample_px = u_center + rd * (1.0 - displace / r);
                 vec2 uv = sample_px / u_resolution;
                 uv.y = 1.0 - uv.y;
                 uv = clamp(uv, vec2(0.001), vec2(0.999));
